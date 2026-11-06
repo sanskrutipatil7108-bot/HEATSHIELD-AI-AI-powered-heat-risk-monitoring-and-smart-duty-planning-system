@@ -1,0 +1,30 @@
+{
+  "framework": "vite",
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api/|images/|assets/|favicon.svg).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

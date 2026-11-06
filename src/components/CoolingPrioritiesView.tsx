@@ -10,6 +10,8 @@ import {
   getDutyPointDisplayName,
   formatNumberLocale
 } from '../services/translations';
+import { SafeImage } from './SafeImage';
+import { IMAGE_ASSETS } from '../services/imageAssets';
 import {
   Umbrella,
   Droplets,
@@ -139,14 +141,21 @@ export const CoolingPrioritiesView: React.FC = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-4 relative min-h-[160px] lg:min-h-full border-t lg:border-t-0 lg:border-l border-theme">
-            <img
-              src="/src/assets/images/cooling_shelter_station_1792600963830.jpg"
-              alt="Roadside misting station and shade shelter"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
+          <div className="lg:col-span-4 relative min-h-[160px] lg:min-h-full border-t lg:border-t-0 lg:border-l border-theme overflow-hidden">
+            <SafeImage
+              src={IMAGE_ASSETS.coolingShelter.bundled}
+              fallbackSrcs={[
+                IMAGE_ASSETS.coolingShelter.primary,
+                IMAGE_ASSETS.coolingShelter.fallback,
+                IMAGE_ASSETS.coolingShelter.legacy
+              ]}
+              alt={IMAGE_ASSETS.coolingShelter.alt}
+              className="w-full h-full object-cover min-h-[160px] lg:min-h-[200px]"
+              wrapperClassName="w-full h-full"
+              fallbackIcon={<Umbrella className="w-8 h-8 text-teal-400" />}
+              fallbackText={t('cooling.mistingStations')}
             />
-            <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-card-theme via-transparent to-transparent opacity-60" />
+            <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-card-theme via-transparent to-transparent opacity-60 pointer-events-none" />
           </div>
         </div>
       </div>

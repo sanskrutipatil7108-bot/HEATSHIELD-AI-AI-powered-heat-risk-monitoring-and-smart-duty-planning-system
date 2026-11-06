@@ -10,6 +10,8 @@ import {
   formatDateLocale,
   formatNumberLocale
 } from '../services/translations';
+import { SafeImage } from './SafeImage';
+import { IMAGE_ASSETS } from '../services/imageAssets';
 import {
   Users,
   Calendar,
@@ -139,11 +141,18 @@ export const DutyPlannerView: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-full border-2 border-teal-500/40 overflow-hidden shrink-0 bg-subtle-theme shadow-sm">
-              <img
-                src="/src/assets/images/avatar_supervisor_officer_1792600965722.jpg"
-                alt="Duty Planning Supervisor"
-                referrerPolicy="no-referrer"
+              <SafeImage
+                src={IMAGE_ASSETS.supervisorAvatar.bundled}
+                fallbackSrcs={[
+                  IMAGE_ASSETS.supervisorAvatar.primary,
+                  IMAGE_ASSETS.supervisorAvatar.fallback,
+                  IMAGE_ASSETS.supervisorAvatar.legacy
+                ]}
+                alt={IMAGE_ASSETS.supervisorAvatar.alt}
                 className="w-full h-full object-cover"
+                wrapperClassName="w-full h-full"
+                fallbackIcon={<Users className="w-6 h-6 text-teal-500" />}
+                fallbackText="Supervisor"
               />
             </div>
             <div>

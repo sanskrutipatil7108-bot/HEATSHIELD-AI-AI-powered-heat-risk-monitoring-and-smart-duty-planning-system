@@ -510,6 +510,11 @@ app.get('/api/geocode/search', async (req: Request, res: Response) => {
 
 // Initialize server (dev with Vite or prod static)
 async function startServer() {
+  const publicPath = path.resolve(__dirname, 'public');
+  if (fs.existsSync(publicPath)) {
+    app.use(express.static(publicPath));
+  }
+
   const distPath = path.resolve(__dirname, 'dist');
   const hasDist = fs.existsSync(distPath) && fs.existsSync(path.resolve(distPath, 'index.html'));
 

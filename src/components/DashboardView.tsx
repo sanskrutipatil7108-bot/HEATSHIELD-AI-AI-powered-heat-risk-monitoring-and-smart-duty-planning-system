@@ -10,6 +10,8 @@ import {
   getPrecautionDisplayName,
   formatNumberLocale
 } from '../services/translations';
+import { SafeImage } from './SafeImage';
+import { IMAGE_ASSETS } from '../services/imageAssets';
 import L from 'leaflet';
 import {
   ShieldAlert,
@@ -429,15 +431,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Hero Image Showcase */}
-          <div className="lg:col-span-4 relative min-h-[180px] lg:min-h-full border-t lg:border-t-0 lg:border-l border-slate-700/60">
-            <img
-              src="/src/assets/images/hero_traffic_heat_junction_1792600965103.jpg"
-              alt="Traffic officer managing midday heat junction"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
+          <div className="lg:col-span-4 relative min-h-[180px] lg:min-h-full border-t lg:border-t-0 lg:border-l border-slate-700/60 overflow-hidden">
+            <SafeImage
+              src={IMAGE_ASSETS.heroJunction.bundled}
+              fallbackSrcs={[
+                IMAGE_ASSETS.heroJunction.primary,
+                IMAGE_ASSETS.heroJunction.fallback,
+                IMAGE_ASSETS.heroJunction.legacy
+              ]}
+              alt={IMAGE_ASSETS.heroJunction.alt}
+              className="w-full h-full object-cover min-h-[180px] lg:min-h-[220px]"
+              wrapperClassName="w-full h-full"
+              fallbackIcon={<Flame className="w-8 h-8 text-amber-400" />}
+              fallbackText={t('dashboard.activeMonitoringZone')}
             />
-            <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-[#14213D] via-transparent to-transparent opacity-85" />
-            <div className="absolute bottom-3 right-3 text-[10px] font-mono text-slate-200 bg-slate-900/80 px-2 py-1 rounded border border-slate-700">
+            <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-[#14213D] via-transparent to-transparent opacity-85 pointer-events-none" />
+            <div className="absolute bottom-3 right-3 text-[10px] font-mono text-slate-200 bg-slate-900/80 px-2 py-1 rounded border border-slate-700 z-10">
               {t('dashboard.activeMonitoringZone')}
             </div>
           </div>

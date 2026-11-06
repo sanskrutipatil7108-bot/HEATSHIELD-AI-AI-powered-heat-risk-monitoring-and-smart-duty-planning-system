@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14213D" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14B8A6" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="50%" stop-color="#F97316" />
+      <stop offset="100%" stop-color="#DC2626" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shield Container -->
+  <rect width="48" height="48" rx="12" fill="url(#shieldGrad)" />
+  <rect width="46" height="46" x="1" y="1" rx="11" stroke="#14B8A6" stroke-opacity="0.4" stroke-width="2" />
+  
+  <!-- Outer Shield Emblem -->
+  <path d="M24 8L36 12.5V23C36 30.5 30.8 37.3 24 40C17.2 37.3 12 30.5 12 23V12.5L24 8Z" 
+        stroke="url(#accentGrad)" stroke-width="2.5" stroke-linejoin="round" fill="#14213D" fill-opacity="0.8" />
+        
+  <!-- Center Heat Flame -->
+  <path d="M24 16C24 16 27.5 19.5 27.5 23C27.5 25.5 26 27.5 24 28.5C22 27.5 20.5 25.5 20.5 23C20.5 19.5 24 16 24 16Z" 
+        fill="url(#flameGrad)" />
+  <circle cx="24" cy="24" r="2.5" fill="#FFFFFF" fill-opacity="0.9" />
+</svg>
