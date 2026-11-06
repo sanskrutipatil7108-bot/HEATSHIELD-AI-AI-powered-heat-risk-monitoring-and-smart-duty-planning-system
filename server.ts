@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import { generateSafetyAssistantResponse } from './src/services/safetyAdvisor';
 
 dotenv.config();
 
@@ -30,21 +31,27 @@ app.get('/api/nugen/status', (_req: Request, res: Response) => {
 
   res.json({
     configured: isConfigured,
-    provider: hasGemini ? 'Google Gemini AI' : hasNugen ? 'Nugen Intelligence' : 'HeatShield Local Engine',
+    provider: hasNugen
+      ? 'Nugen Intelligence (api.nugen.in)'
+      : hasGemini
+      ? 'Google Gemini AI'
+      : 'HeatShield Local Expert Safety Advisor',
     status: isConfigured ? 'live' : 'demo_mode',
     message: isConfigured
       ? 'Live AI Intelligence connected (multilingual safety officer active).'
-      : 'Running in verified offline demonstration mode with complete English, Hindi, and Marathi rules.',
+      : 'Running in verified offline HeatShield Safety Advisor mode with complete English, Hindi, and Marathi rules.',
     docs: 'https://docs.nugen.in/'
   });
 });
 
 // API: Multilingual Chat Proxy (Supports Gemini API, Nugen, and Local Expert Rule Engine)
 app.post('/api/nugen/chat', async (req: Request, res: Response) => {
-  const { messages, context } = req.body;
+  const { messages, context } = req.body || {};
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   const nugenKey = process.env.NUGEN_API_KEY?.trim();
-  const nugenBase = process.env.NUGEN_BASE_URL?.trim() || 'https://api.nugen.in/v1';
+  const rawBase = process.env.NUGEN_BASE_URL?.trim() || 'https://api.nugen.in';
+  const cleanBase = rawBase.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+  const nugenModel = process.env.NUGEN_MODEL?.trim() || 'Qwen/Qwen2.5-7B-Instruct';
   const lang = (context?.language || 'en').toLowerCase();
 
   // 1. Try Gemini API if key is present
@@ -64,7 +71,7 @@ ${langPrompt}
 Follow occupational heat strain guidelines (ACGIH/OSHA/WHO). Never provide a formal medical certification of health. Always offer immediate triage for heat stroke (emergency cooling, 112/108). Format your answer cleanly with bullet points and bold section titles.`;
 
       const promptText = (messages || [])
-        .map((m: any) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+        .map((m: any) => `${m.role || (m.sender === 'user' ? 'user' : 'assistant')}: ${m.content || m.text || ''}`)
         .join('\n\n');
 
       const geminiResp = await ai.models.generateContent({
@@ -80,7 +87,7 @@ Follow occupational heat strain guidelines (ACGIH/OSHA/WHO). Never provide a for
       const reply = geminiResp.text;
       if (reply && reply.trim().length > 0) {
         return res.json({
-          reply,
+          reply: reply.trim(),
           mode: 'gemini_live',
           model: 'gemini-2.5-flash',
           timestamp: new Date().toISOString()
@@ -91,58 +98,88 @@ Follow occupational heat strain guidelines (ACGIH/OSHA/WHO). Never provide a for
     }
   }
 
-  // 2. Try Nugen API if configured
+  // 2. Try Nugen Intelligence API if key is configured
   if (nugenKey) {
-    try {
-      const response = await fetch(`${nugenBase}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${nugenKey}`
-        },
-        body: JSON.stringify({
-          model: 'nugen-chat-default',
-          messages: [
-            {
-              role: 'system',
-              content: `You are HeatShield AI Safety Officer, an expert occupational heat stress and climate safety specialist for traffic police. Location: ${JSON.stringify(
-                context || {}
-              )}. Answer in ${lang === 'mr' ? 'Marathi' : lang === 'hi' ? 'Hindi' : 'English'}.`
-            },
-            ...(messages || [])
-          ],
-          temperature: 0.6,
-          max_tokens: 650
-        }),
-        signal: AbortSignal.timeout(10000)
-      });
+    const candidateEndpoints = [
+      `${cleanBase}/api/v3/chat/completions`,
+      `${cleanBase}/api/v3/openai/chat/completions`,
+      `${cleanBase}/chat/completions`
+    ];
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || data.reply;
-        if (content) {
-          return res.json({
-            reply: content,
-            mode: 'live_nugen',
-            model: data.model || 'nugen-chat',
-            timestamp: new Date().toISOString()
-          });
+    const langName = lang === 'mr' ? 'Marathi' : lang === 'hi' ? 'Hindi' : 'English';
+    const nugenPayload = {
+      model: nugenModel,
+      messages: [
+        {
+          role: 'system',
+          content: `You are HeatShield AI Safety Officer, an expert occupational heat stress and climate safety specialist for traffic police and outdoor workers. Location: ${JSON.stringify(
+            context || {}
+          )}. Answer completely and accurately in ${langName}. Provide actionable, structured guidance.`
+        },
+        ...(messages || []).map((m: any) => ({
+          role: m.role || (m.sender === 'user' ? 'user' : 'assistant'),
+          content: m.content || m.text || ''
+        }))
+      ],
+      temperature: 0.6,
+      max_tokens: 800
+    };
+
+    for (const endpoint of candidateEndpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${nugenKey}`
+          },
+          body: JSON.stringify(nugenPayload),
+          signal: AbortSignal.timeout(9000)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const content =
+            data.choices?.[0]?.message?.content ||
+            data.choices?.[0]?.text ||
+            data.reply ||
+            data.content;
+          if (content && content.trim().length > 0) {
+            return res.json({
+              reply: content.trim(),
+              mode: 'live_nugen',
+              model: data.model || nugenModel,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } else {
+          console.warn(`[Nugen API HTTP ${response.status}] from ${endpoint}`);
+          if (response.status === 404) {
+            continue; // Try next candidate endpoint
+          }
+          break; // Stop loop on authorization or bad request
         }
+      } catch (err: any) {
+        console.warn(`[Nugen API Error] on ${endpoint}:`, err.message);
       }
-    } catch (err: any) {
-      console.warn('Nugen API error or timeout, falling back to local safety rules:', err.message);
     }
   }
 
-  // 3. Multilingual Local Rule Engine (Natural English, Hindi, and Marathi)
-  const lastUserMsg = messages?.[messages.length - 1]?.content || '';
-  const reply = generateSafetyAssistantDemoResponse(lastUserMsg, context);
+  // 3. Fallback to HeatShield Local Expert Safety Advisor (Guaranteed 100% Uptime)
+  const lastUserMsg =
+    messages?.[messages.length - 1]?.content ||
+    messages?.[messages.length - 1]?.text ||
+    '';
+  const reply = generateSafetyAssistantResponse(lastUserMsg, context);
 
   return res.json({
     reply,
-    mode: 'demo',
+    mode: 'local_expert',
     model: 'heatshield-climate-safety-rule-engine',
     timestamp: new Date().toISOString(),
+    statusMessage: nugenKey
+      ? 'Live Nugen AI service temporarily unreachable. Response provided by HeatShield Local Expert Advisor.'
+      : 'Active in verified HeatShield Local Expert Safety mode.',
     notice: 'Generated by HeatShield AI Multilingual Safety Engine.'
   });
 });
